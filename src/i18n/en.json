@@ -10,6 +10,7 @@
   "algorithmLog": "ALGORITHM LOG",
   "metrics": {
     "step": "Step",
+    "stepHeader": "STEPS / h(n)",
     "currentH": "Current h(n)",
     "bestH": "Best H",
     "bestMoves": "Best Move Count"

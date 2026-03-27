@@ -10,6 +10,7 @@
   "algorithmLog": "NHẬT KÝ THUẬT TOÁN",
   "metrics": {
     "step": "Bước",
+    "stepHeader": "BƯỚC / h(n)",
     "currentH": "h(n) hiện tại",
     "bestH": "H tốt nhất",
     "bestMoves": "Số nước đi tốt nhất"
@@ -19,7 +20,7 @@
     "ready": "Sẵn sàng",
     "running": "Đang chạy",
     "solved": "Giải xong",
-    "localOptimum": "Local Optimum"
+    "localOptimum": "Tối ưu cục bộ"
   },
   "modes": {
     "manual": "Nhập tay",
@@ -59,31 +60,31 @@
   "stopBox": {
     "solved": "Giải xong! h(n) = 0",
     "solvedDetail": "Không còn cặp hậu nào tấn công nhau.",
-    "localOptimum": "Local Optimum!",
-    "localDetail": "h(n) hiện tại = {hv} | h tốt nhất LG = {bestH}",
-    "localConclusion": "Không có láng giềng nào có h nhỏ hơn → Dừng."
+    "localOptimum": "Tối ưu cục bộ!",
+    "localDetail": "h(n) hiện tại = {hv} | h(n) tốt nhất ô xung quanh = {bestH}",
+    "localConclusion": "Không có ô cờ nào có h nhỏ hơn → Dừng."
   },
   "log": {
     "initialState": "── Trạng thái ban đầu ─────────────────────",
     "position": "Vị trí",
     "attackingPairs": "cặp hậu tấn công nhau",
-    "bestNeighbor": "Láng giềng tốt nhất",
+    "bestNeighbor": "Ô cờ tốt nhất",
     "hValue": "h",
     "ties": "nước tie",
     "alreadySolved": "✓ Đây đã là lời giải ngay từ đầu!",
     "stepHeader": "── Bước {step} ──────────────────────────────",
     "currentH": "h(n) hiện tại",
-    "scanned": "Duyệt {n} láng giềng → h tốt nhất",
+    "scanned": "Duyệt {n} ô cờ → h tốt nhất",
     "condition": "Điều kiện",
-    "moveTo": "Di chuyển đến best neighbor",
+    "moveTo": "Di chuyển đến ô cờ tốt nhất",
     "col": "Cột",
     "row": "hàng",
     "deltaH": "Δh",
     "cannotImprove": "── Bước {step}: Không thể cải thiện ────────",
-    "bestNeighborH": "h tốt nhất láng giềng",
-    "plateau": "Tất cả láng giềng có h = h hiện tại (plateau)",
-    "worse": "Tất cả láng giềng có h > h hiện tại",
-    "localOptimumReached": "→ Rơi vào local optimum · Dừng thuật toán",
+    "bestNeighborH": "h(n) tốt nhất ô xung quanh",
+    "plateau": "Tất cả ô cờ xung quanh có h = h hiện tại (plateau)",
+    "worse": "Tất cả ô cờ xung quanh có h > h hiện tại",
+    "localOptimumReached": "→ Rơi vào tối ưu cục bộ · Dừng thuật toán",
     "solvedHeader": "✓ GIẢI XONG SAU {step} BƯỚC ──────────",
     "solvedH": "h(n) = 0 · Không còn cặp hậu tấn công nhau!",
     "finalPosition": "Vị trí cuối"

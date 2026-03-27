@@ -56,7 +56,7 @@ const StatsPanel = React.memo(function StatsPanel({
       <div className="panel">
         <div className="ph">
           <BarChart2 size={15} className="ph-ico" />
-          <span className="ph-ttl">{t('metrics.step').toUpperCase()}S / h(n)</span>
+          <span className="ph-ttl">{t('metrics.stepHeader')}</span>
         </div>
         <div className="pb">
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "7px" }}>
