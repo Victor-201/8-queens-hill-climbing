@@ -1,10 +1,14 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { DEFAULT, COLS } from '../constants/boardConstants.js';
+import { DEFAULT, COLS, colLabels, defaultPosition } from '../constants/boardConstants.js';
 import { h, buildTable } from '../algorithms/heuristic.js';
 import { steepest, attackedSet } from '../algorithms/neighborGenerator.js';
 import { queenSVG, sleep, cellCenter, flyArc } from '../utils/boardUtils.js';
 
 export function useHillClimbing() {
+  // ── Board size state ──
+  const [boardSize, setBoardSize] = useState(8);
+  const boardSizeRef = useRef(8);
+
   // ── Core board state ──
   const [queens, setQueens]   = useState([...DEFAULT]);
   const [setupQ, setSetupQ]   = useState([...DEFAULT]);
@@ -15,22 +19,22 @@ export function useHillClimbing() {
 
   // ── Derived display state ──
   const [metrics, setMetrics]   = useState({ hv: null, hb: null, nb: null });
-  const [hTable, setHTable]     = useState([]);   // 8×8 matrix
+  const [hTable, setHTable]     = useState([]);
   const [bestSet, setBestSet]   = useState(new Set());
   const [atkSet, setAtkSet]     = useState(new Set());
   const [tgtSet, setTgtSet]     = useState(new Set());
-  const [logs, setLogs]         = useState([]);   // [{id, html, cls}]
-  const [snaps, setSnaps]       = useState([]);   // snapshots
+  const [logs, setLogs]         = useState([]);
+  const [snaps, setSnaps]       = useState([]);
   const [activeSnap, setActiveSnap] = useState(null);
-  const [stopBox, setStopBox]   = useState(null); // null | {type, hv, bestH}
+  const [stopBox, setStopBox]   = useState(null);
   const [inputErrs, setInputErrs] = useState(false);
 
-  // ── Refs (not re-render-triggering) ──
+  // ── Refs ──
   const busyRef      = useRef(false);
   const autoTmrRef   = useRef(null);
-  const boardRef     = useRef(null);    // ref to board grid DOM element
-  const flyingQueenRef = useRef(null);  // ref to flying queen DOM element
-  const queensRef    = useRef([...DEFAULT]); // always sync with queens state
+  const boardRef     = useRef(null);
+  const flyingQueenRef = useRef(null);
+  const queensRef    = useRef([...DEFAULT]);
   const phaseRef     = useRef('setup');
   const speedRef     = useRef(1200);
   const stepNumRef   = useRef(0);
@@ -50,16 +54,49 @@ export function useHillClimbing() {
 
   const clearLog = useCallback(() => setLogs([]), []);
 
-  // ── Helper: update metrics display ──
+  // ── Helper: update metrics ──
   const updateMetrics = useCallback((hv, hb, nb) => {
     setMetrics({ hv, hb, nb });
   }, []);
 
-  // ── SETUP: build column inputs ──
+  // ── BOARD SIZE CHANGE ──
+  const changeBoardSize = useCallback((n) => {
+    // Stop auto-run
+    if (autoTmrRef.current) { clearInterval(autoTmrRef.current); autoTmrRef.current = null; }
+    busyRef.current = false;
+
+    setBoardSize(n);
+    boardSizeRef.current = n;
+
+    const def = defaultPosition(n);
+    setSetupQ(def);
+    setQueens(def);
+    queensRef.current = def;
+
+    // Reset everything
+    setPhase('setup');
+    phaseRef.current = 'setup';
+    setStepNum(0);
+    stepNumRef.current = 0;
+    setSnaps([]);
+    setActiveSnap(null);
+    setLogs([]);
+    setHTable([]);
+    setBestSet(new Set());
+    setAtkSet(new Set());
+    setTgtSet(new Set());
+    setMetrics({ hv: null, hb: null, nb: null });
+    setStopBox(null);
+    setInputErrs(false);
+    setIsAuto(false);
+  }, []);
+
+  // ── SETUP: column input ──
   const onSI = useCallback((col, val) => {
+    const n = boardSizeRef.current;
     const v = parseInt(val);
     const newQ = [...setupQ];
-    if (v >= 1 && v <= 8) {
+    if (v >= 1 && v <= n) {
       newQ[col] = v - 1;
       setSetupQ(newQ);
       setQueens(newQ);
@@ -70,9 +107,7 @@ export function useHillClimbing() {
   }, [setupQ]);
 
   // ── SETUP: switch mode ──
-  const switchMode = useCallback((m) => {
-    setMode(m);
-  }, []);
+  const switchMode = useCallback((m) => { setMode(m); }, []);
 
   // ── SETUP: cell click ──
   const onCellClick = useCallback((col, row) => {
@@ -89,7 +124,8 @@ export function useHillClimbing() {
 
   // ── SETUP: random ──
   const doRandom = useCallback(() => {
-    const rq = Array.from({ length: 8 }, () => Math.floor(Math.random() * 8));
+    const n = boardSizeRef.current;
+    const rq = Array.from({ length: n }, () => Math.floor(Math.random() * n));
     setSetupQ(rq);
     setQueens(rq);
     queensRef.current = rq;
@@ -99,21 +135,22 @@ export function useHillClimbing() {
 
   // ── SETUP: confirm ──
   const confirmSetup = useCallback((inputVals) => {
-    // inputVals: array of 8 numbers (row values, 1-indexed from inputs)
+    const n = boardSizeRef.current;
+    const cols = colLabels(n);
     let ok = true;
     const newQ = [];
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < n; i++) {
       const v = parseInt(inputVals[i]);
-      if (!v || v < 1 || v > 8) { ok = false; break; }
+      if (!v || v < 1 || v > n) { ok = false; break; }
       newQ[i] = v - 1;
     }
     if (!ok) { setInputErrs(true); return; }
     setInputErrs(false);
     setStopBox(null);
 
-    const hv = h(newQ);
-    const T  = buildTable(newQ);
-    const { bestH, moves } = steepest(newQ);
+    const hv = h(newQ, n);
+    const T  = buildTable(newQ, n);
+    const { bestH, moves } = steepest(newQ, n);
 
     setQueens(newQ);
     queensRef.current = newQ;
@@ -125,7 +162,7 @@ export function useHillClimbing() {
     setLogs([]);
     setHTable(T);
     setBestSet(new Set());
-    setAtkSet(attackedSet(newQ));
+    setAtkSet(attackedSet(newQ, n));
     setTgtSet(new Set());
     updateMetrics(hv, bestH, moves.length);
     setPhase('ready');
@@ -135,7 +172,8 @@ export function useHillClimbing() {
     setSnaps([initSnap]);
     setActiveSnap(0);
 
-    const pos = newQ.map((r, c) => COLS[c] + (r + 1)).join(', ');
+    const pos = newQ.map((r, c) => cols[c] + (r + 1)).join(', ');
+    const neighborCount = n * (n - 1);
     addLog(
       `<div class="lt">── Trạng thái ban đầu ─────────────────────</div>
       <div class="lm">Vị trí: [${pos}]</div>
@@ -154,31 +192,27 @@ export function useHillClimbing() {
 
   // ── ANIMATION: move queen with fly arc ──
   const animateMove = useCallback(async (col, fromRow, toRow) => {
+    const n = boardSizeRef.current;
     const boardEl = boardRef.current;
     const fqEl    = flyingQueenRef.current;
     if (!boardEl || !fqEl) return;
 
-    // Lift: handled via state — set lifted queen
-    // We'll use a ref-based approach for the DOM animation
     const qimgEl = boardEl.querySelector(`#qi-${col}`);
     if (qimgEl) {
       qimgEl.classList.add('lifted');
       await sleep(230);
     }
 
-    const from = cellCenter(boardEl, col, fromRow);
-    const to   = cellCenter(boardEl, col, toRow);
+    const from = cellCenter(boardEl, col, fromRow, n);
+    const to   = cellCenter(boardEl, col, toRow, n);
 
-    // Inject SVG mimicking exactly the queen's appearance
     const svgStr = queenSVG(col, fromRow);
     const src = 'data:image/svg+xml,' + encodeURIComponent(svgStr);
     fqEl.innerHTML = `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;"><img src="${src}" style="width: 75%; height: 75%; display: block;" /></div>`;
 
-    // Show flying queen sized precisely to the dynamic cell bounds
     fqEl.style.cssText = `display:block;left:${from.x - from.w / 2}px;top:${from.y - from.h / 2}px;width:${from.w}px;height:${from.h}px;opacity:1;transform:scale(1)`;
     if (qimgEl) qimgEl.style.opacity = '0';
 
-    // Trail on departure cell
     const srcCell = boardEl.querySelector(`#c-${col}-${fromRow}`);
     if (srcCell) {
       const t = document.createElement('div');
@@ -187,24 +221,20 @@ export function useHillClimbing() {
       setTimeout(() => t.remove(), 1050);
     }
 
-    // Fly arc
     const dur = Math.min(speedRef.current * 0.52, 820);
     await flyArc(fqEl, from, to, dur);
 
-    // Land
     fqEl.style.display = 'none';
 
-    // Update state
     const newQ = [...queensRef.current];
     newQ[col] = toRow;
     setQueens(newQ);
     queensRef.current = newQ;
-    setAtkSet(attackedSet(newQ));
+    setAtkSet(attackedSet(newQ, n));
     setTgtSet(new Set());
     setBestSet(new Set());
 
-    // Landing animation on the new queen image
-    await sleep(80); // brief wait for re-render
+    await sleep(80);
     const liEl = boardEl.querySelector(`#qi-${col}`);
     if (liEl) {
       liEl.classList.add('landing');
@@ -226,16 +256,17 @@ export function useHillClimbing() {
     setPhase('running');
     phaseRef.current = 'running';
 
+    const n = boardSizeRef.current;
+    const cols = colLabels(n);
     const q  = queensRef.current;
-    const hv = h(q);
-    const T  = buildTable(q);
-    const { h0, bestH, moves } = steepest(q);
+    const hv = h(q, n);
+    const T  = buildTable(q, n);
+    const { h0, bestH, moves } = steepest(q, n);
 
     const newStep = stepNumRef.current + 1;
     setStepNum(newStep);
     stepNumRef.current = newStep;
 
-    // Already solved guard
     if (hv === 0) {
       setPhase('solved');
       phaseRef.current = 'solved';
@@ -247,11 +278,10 @@ export function useHillClimbing() {
     setHTable(T);
     setBestSet(bs);
     setTgtSet(bs);
-    setAtkSet(attackedSet(q));
+    setAtkSet(attackedSet(q, n));
     updateMetrics(hv, bestH, moves.length);
     await sleep(Math.max(speedRef.current * 0.28, 220));
 
-    // Local optimum or plateau
     if (bestH >= hv) {
       const reason = bestH === hv
         ? 'Tất cả láng giềng có h = h hiện tại (plateau)'
@@ -273,41 +303,35 @@ export function useHillClimbing() {
         setActiveSnap(next.length - 1);
         return next;
       });
-      // Stop auto
-      if (autoTmrRef.current) {
-        clearInterval(autoTmrRef.current);
-        autoTmrRef.current = null;
-      }
+      if (autoTmrRef.current) { clearInterval(autoTmrRef.current); autoTmrRef.current = null; }
       busyRef.current = false;
       return;
     }
 
-    // Move to best neighbor
     const mv = moves[0];
     const fr = q[mv.col];
+    const neighborCount = n * (n - 1);
 
     addLog(
       `<div class="lt">── Bước ${newStep} ──────────────────────────────</div>
       <div class="lm">h(n) hiện tại = <b style="color:var(--gold2)">${hv}</b></div>
-      <div class="lm hi">Duyệt 56 láng giềng → h tốt nhất = <b style="color:var(--green)">${bestH}</b> (${moves.length} nước)</div>
+      <div class="lm hi">Duyệt ${neighborCount} láng giềng → h tốt nhất = <b style="color:var(--green)">${bestH}</b> (${moves.length} nước)</div>
       <div class="lm ok">Điều kiện: ${bestH} &lt; ${hv} → Di chuyển đến best neighbor</div>
-      <div class="lm ok">→ Cột <b>${COLS[mv.col]}</b>: hàng ${fr + 1} → hàng ${mv.row + 1}  (Δh = ${hv - bestH})</div>`,
+      <div class="lm ok">→ Cột <b>${cols[mv.col]}</b>: hàng ${fr + 1} → hàng ${mv.row + 1}  (Δh = ${hv - bestH})</div>`,
       'step'
     );
 
-    // Animate
     await animateMove(mv.col, fr, mv.row);
 
-    // Post-move state
     const newQ = queensRef.current;
-    const hv2  = h(newQ);
-    const T2   = buildTable(newQ);
-    const { bestH: bh2, moves: mv2 } = steepest(newQ);
+    const hv2  = h(newQ, n);
+    const T2   = buildTable(newQ, n);
+    const { bestH: bh2, moves: mv2 } = steepest(newQ, n);
 
     setHTable(T2);
     setBestSet(new Set());
     setTgtSet(new Set());
-    setAtkSet(attackedSet(newQ));
+    setAtkSet(attackedSet(newQ, n));
     updateMetrics(hv2, bh2, mv2.length);
 
     setSnaps(prev => {
@@ -317,21 +341,17 @@ export function useHillClimbing() {
       return next;
     });
 
-    // Check solved
     if (hv2 === 0) {
       setPhase('solved');
       phaseRef.current = 'solved';
       addLog(
         `<div class="lt" style="color:var(--green)">✓ GIẢI XONG SAU ${newStep} BƯỚC ──────────</div>
         <div class="lm ok">h(n) = 0 · Không còn cặp hậu tấn công nhau!</div>
-        <div class="lm ok">Vị trí cuối: [${newQ.map((r, c) => COLS[c] + (r + 1)).join(', ')}]</div>`,
+        <div class="lm ok">Vị trí cuối: [${newQ.map((r, c) => cols[c] + (r + 1)).join(', ')}]</div>`,
         'ok'
       );
       setStopBox({ type: 'solved', hv: 0 });
-      if (autoTmrRef.current) {
-        clearInterval(autoTmrRef.current);
-        autoTmrRef.current = null;
-      }
+      if (autoTmrRef.current) { clearInterval(autoTmrRef.current); autoTmrRef.current = null; }
       busyRef.current = false;
       return;
     }
@@ -376,12 +396,13 @@ export function useHillClimbing() {
   const restoreSnap = useCallback((idx) => {
     const s = snaps[idx];
     if (!s) return;
+    const n = boardSizeRef.current;
     setActiveSnap(idx);
     setQueens([...s.q]);
     queensRef.current = [...s.q];
     setHTable(s.T);
     setBestSet(s.best);
-    setAtkSet(attackedSet(s.q));
+    setAtkSet(attackedSet(s.q, n));
     setTgtSet(new Set());
     updateMetrics(s.hv, s.hb, s.nb);
     setStepNum(s.step);
@@ -407,7 +428,8 @@ export function useHillClimbing() {
     setMetrics({ hv: null, hb: null, nb: null });
     setStopBox(null);
     setInputErrs(false);
-    const def = [...DEFAULT];
+    const n = boardSizeRef.current;
+    const def = defaultPosition(n);
     setSetupQ(def);
     setQueens(def);
     queensRef.current = def;
@@ -415,13 +437,13 @@ export function useHillClimbing() {
 
   return {
     // State
-    queens, setupQ, phase, stepNum, speed, mode,
+    boardSize, queens, setupQ, phase, stepNum, speed, mode,
     metrics, hTable, bestSet, atkSet, tgtSet,
     logs, snaps, activeSnap, stopBox, inputErrs, isAuto,
     // Refs
     boardRef, flyingQueenRef,
     // Actions
-    onSI, switchMode, onCellClick, doRandom, confirmSetup,
+    changeBoardSize, onSI, switchMode, onCellClick, doRandom, confirmSetup,
     doStep, toggleAuto, onSpeed, restoreSnap, fullReset,
     clearLog,
   };

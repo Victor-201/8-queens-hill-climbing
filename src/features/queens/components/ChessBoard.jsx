@@ -1,13 +1,13 @@
 import React, { useCallback, useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { COLS } from "../constants/boardConstants.js";
+import { colLabels } from "../constants/boardConstants.js";
 import Queen from "./Queen.jsx";
 import { queenSVG } from "../utils/boardUtils.js";
 
 /**
  * Chess board component.
- * Renders 8×8 grid with row/column labels, queen pieces, attack hatching, and target rings.
- * The gridRef and flyingQueenRef are forwarded from useHillClimbing for animation.
+ * Renders N×N grid with row/column labels, queen pieces, attack hatching, and target rings.
+ * The boardRef and flyingQueenRef are forwarded from useHillClimbing for animation.
  */
 const ChessBoard = React.memo(function ChessBoard({
   queens,
@@ -17,7 +17,9 @@ const ChessBoard = React.memo(function ChessBoard({
   tgtSet,
   boardRef,
   onCellClick,
+  boardSize = 8,
 }) {
+  const COLS = colLabels(boardSize);
   const isClickable =
     (phase === "setup" || phase === "ready") && mode === "click";
 
@@ -60,7 +62,7 @@ const ChessBoard = React.memo(function ChessBoard({
          const dRow = parseInt(parts[2]);
          if (!isNaN(dCol) && !isNaN(dRow) && dragRef.current) {
             const currentDragCol = dragRef.current.col;
-            setDragHover(prev => (prev?.col === currentDragCol && prev?.row === dRow) ? prev : { col: currentDragCol, row: dRow }); 
+            setDragHover(prev => (prev?.col === currentDragCol && prev?.row === dRow) ? prev : { col: currentDragCol, row: dRow });
          } else {
             setDragHover(prev => prev === null ? null : null);
          }
@@ -130,7 +132,7 @@ const ChessBoard = React.memo(function ChessBoard({
                 const rect = e.currentTarget.getBoundingClientRect();
                 e.currentTarget.setPointerCapture(e.pointerId);
                 document.body.style.cursor = 'grabbing';
-                
+
                 const t = document.createElement('div');
                 t.className = 'trail-fx';
                 e.currentTarget.appendChild(t);
@@ -160,13 +162,16 @@ const ChessBoard = React.memo(function ChessBoard({
     [queens, phase, mode, atkSet, tgtSet, isClickable, onCellClick, dragCol, isDragging, landed, dragHover],
   );
 
-  // Render rows from top (row=7) to bottom (row=0)
+  // Render rows from top (row=boardSize-1) to bottom (row=0)
   const cells = [];
-  for (let row = 7; row >= 0; row--) {
-    for (let col = 0; col < 8; col++) {
+  for (let row = boardSize - 1; row >= 0; row--) {
+    for (let col = 0; col < boardSize; col++) {
       cells.push(renderCell(col, row));
     }
   }
+
+  // Row labels from boardSize down to 1
+  const rowLabels = Array.from({ length: boardSize }, (_, i) => boardSize - i);
 
   return (
     <div className={`board-wrap${drag ? ' is-dragging' : ''}`}>
@@ -182,7 +187,7 @@ const ChessBoard = React.memo(function ChessBoard({
       <div className="board-body">
         {/* Row labels */}
         <div className="board-rlabels">
-          {[8, 7, 6, 5, 4, 3, 2, 1].map((r) => (
+          {rowLabels.map((r) => (
             <div key={r} className="board-rlbl">
               {r}
             </div>
@@ -190,9 +195,15 @@ const ChessBoard = React.memo(function ChessBoard({
         </div>
 
         {/* Grid */}
-        <div 
-          className="board-grid" ref={boardRef}
-          style={{ userSelect: "none", touchAction: "none" }}
+        <div
+          className="board-grid"
+          ref={boardRef}
+          style={{
+            userSelect: "none",
+            touchAction: "none",
+            gridTemplateColumns: `repeat(${boardSize}, var(--SZ))`,
+            gridTemplateRows: `repeat(${boardSize}, var(--SZ))`,
+          }}
         >
           {cells}
         </div>
@@ -202,8 +213,7 @@ const ChessBoard = React.memo(function ChessBoard({
       <div className="qbadges">
         {queens.map((r, c) => (
           <div key={c} className="qb">
-            {COLS[c]}
-            {r + 1}
+            {COLS[c]}{r + 1}
           </div>
         ))}
       </div>

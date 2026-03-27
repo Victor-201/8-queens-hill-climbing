@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from "react";
-import { COLS } from "../constants/boardConstants.js";
+import { colLabels } from "../constants/boardConstants.js";
 import { hcls } from "../utils/boardUtils.js";
-import { BarChart2, Map, ClipboardList, Crown } from "lucide-react";
+import { BarChart2, Map, ClipboardList } from "lucide-react";
 
 /**
  * Stats Panel — right column.
@@ -15,8 +15,11 @@ const StatsPanel = React.memo(function StatsPanel({
   logs,
   stepNum,
   clearLog,
+  boardSize = 8,
 }) {
   const logRef = useRef(null);
+  const COLS = colLabels(boardSize);
+  const neighborCount = boardSize * (boardSize - 1);
 
   // Auto-scroll log to bottom when new entries arrive
   useEffect(() => {
@@ -33,9 +36,9 @@ const StatsPanel = React.memo(function StatsPanel({
   const handleCopyTable = () => {
     if (!hTable || hTable.length === 0) return;
     let text = "";
-    for (let row = 7; row >= 0; row--) {
+    for (let row = boardSize - 1; row >= 0; row--) {
       const rowData = [];
-      for (let col = 0; col < 8; col++) {
+      for (let col = 0; col < boardSize; col++) {
         const v = hTable[row]?.[col];
         if (queens[col] === row) {
           rowData.push("♛");
@@ -99,7 +102,7 @@ const StatsPanel = React.memo(function StatsPanel({
       <div className="panel">
         <div className="ph">
           <Map size={15} className="ph-ico" />
-          <span className="ph-ttl">BẢNG HEURISTIC h(n)</span>
+          <span className="ph-ttl">BẢNG HEURISTIC h(n) — {neighborCount} LÁNG GIỀNG</span>
           {hTable.length > 0 && (
             <button
               className={`btn${copied ? " success" : ""}`}
@@ -118,10 +121,17 @@ const StatsPanel = React.memo(function StatsPanel({
           <div style={{ overflowX: "auto" }}>
             {hTable.length > 0 ? (
               <table className="htbl" id="htbl">
+                <thead>
+                  <tr>
+                    <th className="rl"></th>
+                    {COLS.map((c) => <th key={c}>{c}</th>)}
+                  </tr>
+                </thead>
                 <tbody>
-                  {[7, 6, 5, 4, 3, 2, 1, 0].map((row) => (
+                  {Array.from({ length: boardSize }, (_, i) => boardSize - 1 - i).map((row) => (
                     <tr key={row}>
-                      {Array.from({ length: 8 }, (_, col) => {
+                      <td className="rl">{row + 1}</td>
+                      {Array.from({ length: boardSize }, (_, col) => {
                         const v = hTable[row]?.[col];
                         const isCur = queens[col] === row;
                         const isBest = bestSet.has(`${col},${row}`);

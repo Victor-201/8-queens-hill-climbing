@@ -9,11 +9,11 @@ import { Grid3X3 } from 'lucide-react';
 
 export default function Home() {
   const {
-    queens, setupQ, phase, stepNum, speed, mode,
+    boardSize, queens, setupQ, phase, stepNum, speed, mode,
     metrics, hTable, bestSet, atkSet, tgtSet,
     logs, snaps, activeSnap, stopBox, inputErrs, isAuto,
     boardRef, flyingQueenRef,
-    onSI, switchMode, onCellClick, doRandom, confirmSetup,
+    changeBoardSize, onSI, switchMode, onCellClick, doRandom, confirmSetup,
     doStep, toggleAuto, onSpeed, restoreSnap, fullReset,
     clearLog,
   } = useHillClimbing();
@@ -33,6 +33,7 @@ export default function Home() {
         {/* ── LEFT COLUMN: controls only ── */}
         <div className="col-l">
           <ControlPanel
+            boardSize={boardSize}
             setupQ={setupQ}
             phase={phase}
             mode={mode}
@@ -42,6 +43,7 @@ export default function Home() {
             activeSnap={activeSnap}
             stopBox={stopBox}
             inputErrs={inputErrs}
+            changeBoardSize={changeBoardSize}
             switchMode={switchMode}
             doRandom={doRandom}
             confirmSetup={confirmSetup}
@@ -60,6 +62,9 @@ export default function Home() {
             <div className="ph">
               <Grid3X3 size={15} className="ph-ico" />
               <span className="ph-ttl">BÀN CỜ</span>
+              <span style={{ marginLeft: 'auto', fontSize: '.62rem', color: 'var(--gold)', letterSpacing: '1px' }}>
+                {boardSize}×{boardSize}
+              </span>
             </div>
             <div className="pb">
               <ChessBoard
@@ -70,6 +75,7 @@ export default function Home() {
                 tgtSet={tgtSet}
                 boardRef={boardRef}
                 onCellClick={onCellClick}
+                boardSize={boardSize}
               />
             </div>
           </div>
@@ -85,6 +91,7 @@ export default function Home() {
             logs={logs}
             stepNum={stepNum}
             clearLog={clearLog}
+            boardSize={boardSize}
           />
         </div>
       </div>

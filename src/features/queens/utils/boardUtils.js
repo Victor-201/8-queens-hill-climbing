@@ -54,14 +54,15 @@ export const sleep = ms => new Promise(r => setTimeout(r, ms));
 /**
  * Get pixel center of a board cell.
  * boardEl = reference to the board grid DOM element.
+ * n = board size (number of cells per side).
  */
-export function cellCenter(boardEl, col, row) {
+export function cellCenter(boardEl, col, row, n = 8) {
   const rect = boardEl.getBoundingClientRect();
-  const cellW = rect.width / 8;
-  const cellH = rect.height / 8;
+  const cellW = rect.width / n;
+  const cellH = rect.height / n;
   return {
     x: rect.left + col * cellW + cellW / 2,
-    y: rect.top  + (7 - row) * cellH + cellH / 2,
+    y: rect.top  + (n - 1 - row) * cellH + cellH / 2,
     w: cellW,
     h: cellH,
   };

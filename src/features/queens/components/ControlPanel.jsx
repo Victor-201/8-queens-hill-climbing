@@ -1,24 +1,26 @@
 import React, { useRef, useState, useEffect } from "react";
-import { COLS } from "../constants/boardConstants.js";
+import { colLabels, BOARD_SIZES } from "../constants/boardConstants.js";
 import {
   Pencil,
   Settings,
   Check,
   AlertTriangle,
-  Play,
-  Square,
   StepForward,
+  Square,
   RotateCcw,
   Zap,
+  LayoutGrid,
 } from "lucide-react";
 
 /**
- * Control Panel — left column, lower section.
+ * Control Panel — left column.
  * Contains:
+ *  - Board size selector (new)
  *  - Setup panel (tabs, inputs, random, confirm)
  *  - Controls (step, auto, reset, speed, history chips, stop box)
  */
 function ControlPanel({
+  boardSize = 8,
   setupQ,
   phase,
   mode,
@@ -29,6 +31,7 @@ function ControlPanel({
   stopBox,
   inputErrs,
   // callbacks
+  changeBoardSize,
   switchMode,
   doRandom,
   confirmSetup,
@@ -37,14 +40,16 @@ function ControlPanel({
   fullReset,
   onSpeed,
   restoreSnap,
-  onSIChange, // (col, val)
+  onSIChange,
 }) {
+  const COLS = colLabels(boardSize);
+
   // Track local input values for the confirm button
   const [inputVals, setInputVals] = useState(() =>
     setupQ.map((r) => String(r + 1)),
   );
 
-  // Sync when setupQ changes externally (random / reset)
+  // Sync when setupQ changes externally (random / reset / board size change)
   useEffect(() => {
     setInputVals(setupQ.map((r) => String(r + 1)));
   }, [setupQ]);
@@ -60,6 +65,10 @@ function ControlPanel({
       return nv;
     });
     onSIChange(col, val);
+  };
+
+  const handleBoardSizeChange = (n) => {
+    changeBoardSize(n);
   };
 
   const isReady = phase === "ready";
@@ -97,6 +106,28 @@ function ControlPanel({
 
   return (
     <>
+      {/* ── BOARD SIZE SELECTOR ── */}
+      <div className="panel">
+        <div className="ph">
+          <LayoutGrid size={15} className="ph-ico" />
+          <span className="ph-ttl">KÍCH THƯỚC BÀN CỜ</span>
+        </div>
+        <div className="pb" style={{ paddingTop: "10px", paddingBottom: "10px" }}>
+          <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+            {BOARD_SIZES.map((n) => (
+              <button
+                key={n}
+                className={`btn${boardSize === n ? " primary" : ""}`}
+                style={{ flex: 1, justifyContent: "center", minWidth: "44px", padding: "5px 6px" }}
+                onClick={() => handleBoardSizeChange(n)}
+              >
+                {n}×{n}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* ── SETUP PANEL ── */}
       <div className="panel">
         <div className="ph">
@@ -155,13 +186,13 @@ function ControlPanel({
                 marginBottom: "6px",
               }}
             >
-              Nhập hàng (1–8) cho mỗi cột — bàn cờ cập nhật realtime:
+              Nhập hàng (1–{boardSize}) cho mỗi cột — bàn cờ cập nhật realtime:
             </div>
             <div className="setup-cols">
               {COLS.map((c, i) => {
                 const val = inputVals[i];
                 const num = parseInt(val, 10);
-                const isValid = !isNaN(num) && num >= 1 && num <= 8;
+                const isValid = !isNaN(num) && num >= 1 && num <= boardSize;
                 return (
                   <div key={c} className="sc-col">
                     <div className="sc-lbl">{c}</div>
@@ -170,7 +201,7 @@ function ControlPanel({
                       id={`si${i}`}
                       type="number"
                       min="1"
-                      max="8"
+                      max={boardSize}
                       value={val ?? ""}
                       onChange={(e) => handleInput(i, e.target.value)}
                     />
@@ -193,7 +224,7 @@ function ControlPanel({
             </div>
           </div>
 
-          {/* Click mode info */}
+          {/* Click/drag mode info */}
           <div
             id="panel-c"
             className="mt8"
@@ -216,7 +247,7 @@ function ControlPanel({
                 size={12}
                 style={{ display: "inline", marginBottom: "-2px" }}
               />{" "}
-              Cần điền đủ hàng (1–8) cho tất cả các cột!
+              Cần điền đủ hàng (1–{boardSize}) cho tất cả các cột!
             </div>
           )}
 
