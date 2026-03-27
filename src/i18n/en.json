@@ -1,5 +1,5 @@
 {
-  "title": "8-QUEENS HILL CLIMBING",
+  "title": "QUEENS HILL CLIMBING",
   "subtitle": "Steepest-Ascent · h(n) = number of attacking queen pairs (row + diagonal)",
   "boardPanel": "BOARD",
   "boardSize": "BOARD SIZE",

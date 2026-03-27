@@ -1,5 +1,5 @@
 {
-  "title": "8-QUEENS HILL CLIMBING",
+  "title": "QUEENS HILL CLIMBING",
   "subtitle": "Steepest-Ascent · h(n) = số cặp hậu tấn công nhau (hàng + đường chéo)",
   "boardPanel": "BÀN CỜ",
   "boardSize": "KÍCH THƯỚC BÀN CỜ",
